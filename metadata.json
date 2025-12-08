@@ -1,0 +1,5 @@
+{
+  "name": "Design DNA Studio",
+  "description": "A comprehensive design suite to analyze images, build a style library, and generate new prompts using Gemini 2.5.",
+  "requestFramePermissions": []
+}
