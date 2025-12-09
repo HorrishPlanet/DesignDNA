@@ -1,14 +1,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { DesignDNA, DraftResponse } from "../types";
 
+// TODO: Replace 'YOUR_ACTUAL_API_KEY_HERE' with your real key from Google AI Studio for local testing.
+// For production, revert to process.env.API_KEY.
+const API_KEY = process.env.API_KEY || "AIzaSyCQM39z8GR2NmywUqFuG_wWc4ZE4_OVQU0";
+
 // Initialize the client
 const ai = new GoogleGenAI({ 
-  apiKey: process.env.API_KEY
+  apiKey: API_KEY
 });
 
-// We use the user-specified model for vision tasks, but Flash is often more stable for pure JSON generation.
-// We'll use the config model for analysis and a fallback or same model for drafting.
-const VISION_MODEL_ID = "gemini-3-pro-image-preview";
+// We use gemini-2.5-flash for both vision (multimodal) and logic tasks as it is stable, fast, and generally available.
+// "gemini-3-pro-image-preview" often requires specific allow-listing or is restricted.
+const VISION_MODEL_ID = "gemini-2.5-flash";
 const LOGIC_MODEL_ID = "gemini-2.5-flash";
 
 export const analyzeDesignDNA = async (
@@ -124,34 +128,13 @@ export const generateDesignDraft = async (
       2. The draft must be a JSON tree of components. 
          - Supported types: 'container', 'text', 'header', 'button', 'image', 'input', 'card'.
          - 'styles': A string of TailwindCSS classes. Ensure valid, high-contrast colors using the palette provided. Use arbitrary values if needed (e.g. bg-[#123456]).
-         - 'content': Text content for text/header/button types.
+         - 'content': Text content for text/header/button types. Keep content brief and realistic.
          - 'children': Nested components.
-      3. Also generate the 'finalPrompt' used for image generation models.
+      3. **IMPORTANT**: Keep the JSON structure concise. Avoid excessive nesting depth (max 3-4 levels). Do not generate extremely long text strings.
+      4. Also generate the 'finalPrompt' used for image generation models.
 
       Return JSON format exactly matching the schema.
     `;
-
-    // We define a recursive schema with fixed depth to avoid "empty object" errors in the API validation
-    const componentSchema = {
-      type: Type.OBJECT,
-      properties: {
-        type: { type: Type.STRING },
-        styles: { type: Type.STRING },
-        content: { type: Type.STRING },
-        children: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              type: { type: Type.STRING },
-              styles: { type: Type.STRING },
-              content: { type: Type.STRING },
-              // Limited recursion depth
-            }
-          }
-        }
-      }
-    };
 
     const response = await ai.models.generateContent({
       model: LOGIC_MODEL_ID, // Using Flash for reliable JSON generation
